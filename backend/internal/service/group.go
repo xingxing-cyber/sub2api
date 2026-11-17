@@ -102,6 +102,7 @@ type Group struct {
 	// OpenAI Messages 调度配置（仅 openai 平台使用）
 	AllowMessagesDispatch       bool
 	AllowLive                   bool
+	AccountIntelligenceEnabled  bool // OpenAI 分组的逐账号智能检测开关
 	ForceOpenAIFast             bool // 强制 OpenAI 网关请求使用 service_tier=priority
 	ForceOpenAIUltrafast        bool // 对支持 Ultrafast 的模型强制 service_tier=ultrafast，优先于 ForceOpenAIFast
 	FreeOpenAIFast              bool // OpenAI Fast 请求按 Standard 价格向用户计费

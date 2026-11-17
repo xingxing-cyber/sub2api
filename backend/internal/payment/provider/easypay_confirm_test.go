@@ -167,6 +167,17 @@ func TestEasyPayConfirmNotificationSkipsNonSuccess(t *testing.T) {
 	}
 }
 
+func TestEasyPayConfirmNotificationSupportsBePusdtWithoutQueryAPI(t *testing.T) {
+	provider, calls := newConfirmTestEasyPay(t, "404 page not found", http.StatusNotFound)
+	err := provider.ConfirmNotification(context.Background(), confirmTestNotification())
+	if err != nil {
+		t.Fatalf("unsupported bePusdt query API must remain compatible: %v", err)
+	}
+	if calls.Load() != 1 {
+		t.Fatalf("upstream query calls = %d, want 1", calls.Load())
+	}
+}
+
 func TestEasyPayConfirmNotificationQueryTransportError(t *testing.T) {
 	t.Parallel()
 

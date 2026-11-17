@@ -1,0 +1,10 @@
+# Apply alongside docker-compose.yml only after testing a restored database.
+# This builds the fork; docker-compose.yml alone uses the official image.
+services:
+  sub2api:
+    image: xingxing-sub2api:local
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    environment:
+      CHANNEL_MONITOR_INTELLIGENCE_DISABLED: ${CHANNEL_MONITOR_INTELLIGENCE_DISABLED:-0}

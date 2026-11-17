@@ -255,6 +255,33 @@ describe("GroupsView OpenAI forced service tier", () => {
     wrapper.unmount();
   });
 
+  it("loads and disables the account intelligence flag without changing service tiers", async () => {
+    const wrapper = await openEditDialog({ ...sourceGroup, account_intelligence_enabled: true });
+    const intelligence = wrapper.get('[data-testid="edit-account-intelligence"]');
+    expect(intelligence.attributes("aria-checked")).toBe("true");
+    await intelligence.trigger("click");
+    expect(await submit(wrapper)).toMatchObject({
+      account_intelligence_enabled: false,
+      force_openai_fast: false,
+      force_openai_ultrafast: false,
+    });
+    wrapper.unmount();
+  });
+
+  it("enables account intelligence for an existing OpenAI group", async () => {
+    const wrapper = await openEditDialog(sourceGroup);
+    await wrapper.get('[data-testid="edit-account-intelligence"]').trigger("click");
+    expect(await submit(wrapper)).toMatchObject({ account_intelligence_enabled: true });
+    wrapper.unmount();
+  });
+
+  it("hides and clears account intelligence for a composite group", async () => {
+    const wrapper = await openEditDialog({ ...sourceGroup, platform: "composite", account_intelligence_enabled: true });
+    expect(wrapper.find('[data-testid="edit-account-intelligence"]').exists()).toBe(false);
+    expect(await submit(wrapper)).toMatchObject({ account_intelligence_enabled: false });
+    wrapper.unmount();
+  });
+
   it.each([
     [{ force_openai_fast: true, force_openai_ultrafast: false }],
     [{ force_openai_fast: false, force_openai_ultrafast: true }],

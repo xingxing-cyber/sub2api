@@ -453,3 +453,36 @@ func TestReleaseUsageBillingBatchImageBalance_SkipsWhenHoldNeverReserved(t *test
 	require.NoError(t, tx.Commit())
 	require.NoError(t, mock.ExpectationsWereMet())
 }
+
+// TestApplyUsageBillingEffects_DeletedAPIKeyRateLimitOnly 同上，但只走限速分支（key 未设配额时）。
+func TestApplyUsageBillingEffects_DeletedAPIKeyRateLimitOnly(t *testing.T) {
+	ctx := context.Background()
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+
+	mock.ExpectBegin()
+	tx, err := db.BeginTx(ctx, nil)
+	require.NoError(t, err)
+	mock.ExpectQuery(conditionalBalanceDeductSQL).
+		WithArgs(0.5, int64(42)).
+		WillReturnRows(sqlmock.NewRows([]string{"balance"}).AddRow(9.5))
+	mock.ExpectExec(apiKeyRateLimitIncrementSQL).
+		WithArgs(0.5, int64(99)).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectCommit()
+
+	result := &service.UsageBillingApplyResult{Applied: true}
+	err = (&usageBillingRepository{}).applyUsageBillingEffects(ctx, tx, &service.UsageBillingCommand{
+		RequestID:           "req-deleted-key-rate-limit",
+		UserID:              42,
+		APIKeyID:            99,
+		BalanceCost:         0.5,
+		APIKeyRateLimitCost: 0.5,
+	}, result)
+	require.NoError(t, err)
+	require.NotNil(t, result.NewBalance)
+	require.InDelta(t, 9.5, *result.NewBalance, 0.000001)
+	require.NoError(t, tx.Commit())
+	require.NoError(t, mock.ExpectationsWereMet())
+}

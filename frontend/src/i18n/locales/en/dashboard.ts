@@ -413,6 +413,8 @@ export default {
     cacheHit: 'Cache hit',
     cacheCreate: 'Cache create',
     cacheHitRate: 'Cache hit rate',
+    cacheRate: 'Cache',
+    cacheHitRateHint: 'Cache reads divided by plain input plus cache reads and cache writes.',
     inputTokenPrice: 'Input price',
     outputTokenPrice: 'Output price',
     perMillionTokens: '/ 1M tokens',

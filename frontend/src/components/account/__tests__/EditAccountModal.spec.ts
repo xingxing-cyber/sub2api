@@ -336,6 +336,21 @@ describe('EditAccountModal', () => {
 
   afterEach(() => vi.useRealTimers())
 
+  it.each([false, true])('loads and saves the never-temp-unschedulable switch from %s', async (initial) => {
+    const account = buildAccount()
+    account.credentials.never_temp_unschedulable = initial
+    updateAccountMock.mockReset().mockResolvedValue(account)
+    checkMixedChannelRiskMock.mockReset().mockResolvedValue({ has_risk: false })
+    const wrapper = mountModal(account)
+    const toggle = wrapper.get('[role="switch"][aria-label="admin.accounts.tempUnschedulable.neverTitle"]')
+    expect(toggle.attributes('aria-checked')).toBe(String(initial))
+    await toggle.trigger('click')
+    await wrapper.get('form#edit-account-form').trigger('submit.prevent')
+    const credentials = updateAccountMock.mock.calls[0]?.[1].credentials
+    expect(credentials.never_temp_unschedulable === true).toBe(!initial)
+    wrapper.unmount()
+  })
+
   it.each(['apikey', 'oauth'])('can opt a passthrough %s account into model filtering without changing groups', async (type) => {
     const account = buildAccount()
     account.type = type

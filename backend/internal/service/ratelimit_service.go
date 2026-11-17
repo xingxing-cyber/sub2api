@@ -148,6 +148,9 @@ func (s *RateLimitService) notifyAccountSchedulingBlocked(account *Account, unti
 	if s == nil || s.runtimeBlocker == nil || account == nil {
 		return
 	}
+	if account.IsNeverTempUnschedulable() {
+		return
+	}
 	s.runtimeBlocker.BlockAccountScheduling(account, until, reason)
 }
 
@@ -164,6 +167,12 @@ func (s *RateLimitService) notifyAccountSchedulingBlockCleared(accountID int64) 
 // is blocked (either newly or already paused for the same threshold reason).
 func (s *RateLimitService) ApplyAccountSchedulingThreshold(ctx context.Context, account *Account) bool {
 	if s == nil || s.settingService == nil || s.accountRepo == nil || account == nil || account.ID <= 0 {
+		return false
+	}
+	if account.Platform == PlatformGrok {
+		return false
+	}
+	if account.IsNeverTempUnschedulable() {
 		return false
 	}
 	if !account.IsActive() || !account.Schedulable {
@@ -496,6 +505,13 @@ func (s *RateLimitService) HandleUpstreamError(ctx context.Context, account *Acc
 					msg = "OAuth 401 (no refresh_token): " + upstreamMsg
 				}
 				s.handleAuthError(ctx, authAccount, msg)
+				shouldDisable = true
+				break
+			}
+			if authAccount.Platform == PlatformGrok {
+				// Grok OAuth transient auth failures are retried/fail over by the
+				// request path. Never persist the generic OAuth temp cooldown.
+				slog.Info("grok_oauth_401_temp_unschedule_skipped", "account_id", authAccount.ID)
 				shouldDisable = true
 				break
 			}
@@ -2431,7 +2447,7 @@ func (s *RateLimitService) GetTempUnschedStatus(ctx context.Context, accountID i
 }
 
 func (s *RateLimitService) HandleTempUnschedulable(ctx context.Context, account *Account, statusCode int, responseBody []byte, requestedModel ...string) bool {
-	if account == nil {
+	if account == nil || account.Platform == PlatformGrok {
 		return false
 	}
 	if account.IsPoolMode() && !account.IsCustomErrorCodesEnabled() {
@@ -2834,7 +2850,10 @@ func matchTempUnschedulableRules(account *Account, statusCode int, responseBody 
 }
 
 func (s *RateLimitService) tryTempUnschedulable(ctx context.Context, account *Account, statusCode int, responseBody []byte, requestedModel ...string) bool {
-	if account == nil {
+	if account == nil || account.Platform == PlatformGrok {
+		return false
+	}
+	if account.IsNeverTempUnschedulable() {
 		return false
 	}
 	if !account.IsTempUnschedulableEnabled() {
@@ -2983,7 +3002,10 @@ func truncateTempUnschedMessage(body []byte, maxBytes int) string {
 // 根据系统设置决定是否标记账户为临时不可调度或错误状态
 // 返回是否应该停止该账号的调度
 func (s *RateLimitService) HandleStreamTimeout(ctx context.Context, account *Account, model string) bool {
-	if account == nil {
+	if account == nil || account.Platform == PlatformGrok {
+		if account != nil && account.Platform == PlatformGrok {
+			slog.Info("grok_stream_timeout_temp_unschedule_skipped", "account_id", account.ID, "model", model)
+		}
 		return false
 	}
 
@@ -3038,6 +3060,9 @@ func (s *RateLimitService) HandleStreamTimeout(ctx context.Context, account *Acc
 
 // triggerStreamTimeoutTempUnsched 触发流超时临时不可调度
 func (s *RateLimitService) triggerStreamTimeoutTempUnsched(ctx context.Context, account *Account, settings *StreamTimeoutSettings, model string) bool {
+	if account == nil || account.IsNeverTempUnschedulable() {
+		return false
+	}
 	now := time.Now()
 	until := now.Add(time.Duration(settings.TempUnschedMinutes) * time.Minute)
 

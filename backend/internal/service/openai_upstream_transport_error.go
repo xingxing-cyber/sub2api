@@ -172,7 +172,23 @@ func (s *OpenAIGatewayService) handleOpenAIUpstreamTransportError(ctx context.Co
 //   - "openai.account_temp_unscheduled_transport_failed" — DB write attempted
 //     but returned an error.
 func (s *OpenAIGatewayService) tempUnscheduleOpenAITransportError(ctx context.Context, account *Account, safeErr string) {
-	if s == nil || account == nil {
+	if s == nil || account == nil || account.Platform == PlatformGrok {
+		if account != nil && account.Platform == PlatformGrok {
+			logger.L().With(zap.String("component", "service.openai_gateway")).Info(
+				"grok_transport_temp_unschedule_skipped",
+				zap.Int64("account_id", account.ID),
+				zap.String("reason", safeErr),
+			)
+		}
+		return
+	}
+	if account.IsNeverTempUnschedulable() {
+		logger.L().With(zap.String("component", "service.openai_gateway")).Info(
+			"openai.account_temp_unschedule_skipped_by_flag",
+			zap.Int64("account_id", account.ID),
+			zap.String("account_name", account.Name),
+			zap.String("reason", safeErr),
+		)
 		return
 	}
 	if s.cfg != nil && s.cfg.Gateway.DisableOpenAITransportErrorCooldown {

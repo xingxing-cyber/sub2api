@@ -63,6 +63,16 @@ export function formatMonitorPercent(value: number, locale = monitorIntlLocale()
   }).format((value || 0) * 100)}%`
 }
 
+export function availabilityTextClass(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(value)) return 'text-gray-900 dark:text-gray-100'
+  if (value < 30) return 'text-gray-950 dark:text-white'
+  if (value < 50) return 'text-red-600 dark:text-red-400'
+  if (value < 60) return 'text-amber-700 dark:text-amber-300'
+  if (value < 80) return 'text-yellow-700 dark:text-yellow-300'
+  if (value < 90) return 'text-emerald-700 dark:text-emerald-300'
+  return 'text-emerald-800 dark:text-emerald-300'
+}
+
 export function formatMonitorMs(value: number | null | undefined): string {
   if (value == null) return '-'
   return value >= 1000 ? `${(value / 1000).toFixed(1)}s` : `${Math.round(value)}ms`

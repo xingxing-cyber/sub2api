@@ -1267,6 +1267,10 @@ export default {
         unsupportedMessage: '当前 Sub2API 服务端无法生成 Live 所需的设备证明，即使开启也不能使用。是否仍然开启？',
         enableAnyway: '仍然开启'
       },
+      accountIntelligence: {
+        enable: '启用账号智能检测',
+        hint: '每 10 分钟向该分组内的 OpenAI 账号发送双模型检测请求，检查回答一致性；探测会消耗上游额度，结果显示在账号列表。'
+      },
       openaiFast: {
         title: 'OpenAI Fast 模式',
         force: '强制使用 Fast（priority）',

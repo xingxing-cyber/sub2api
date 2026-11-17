@@ -238,6 +238,7 @@ type CreateGroupRequest struct {
 	// OpenAI Messages 调度配置（仅 openai 平台使用）
 	AllowMessagesDispatch       bool                                      `json:"allow_messages_dispatch"`
 	AllowLive                   bool                                      `json:"allow_live"`
+	AccountIntelligenceEnabled  bool                                      `json:"account_intelligence_enabled"`
 	ForceOpenAIFast             bool                                      `json:"force_openai_fast"`
 	ForceOpenAIUltrafast        bool                                      `json:"force_openai_ultrafast"`
 	FreeOpenAIFast              bool                                      `json:"free_openai_fast"`
@@ -316,6 +317,7 @@ type UpdateGroupRequest struct {
 	// OpenAI Messages 调度配置（仅 openai 平台使用）
 	AllowMessagesDispatch       *bool                                      `json:"allow_messages_dispatch"`
 	AllowLive                   *bool                                      `json:"allow_live"`
+	AccountIntelligenceEnabled  *bool                                      `json:"account_intelligence_enabled"`
 	ForceOpenAIFast             *bool                                      `json:"force_openai_fast"`
 	ForceOpenAIUltrafast        *bool                                      `json:"force_openai_ultrafast"`
 	FreeOpenAIFast              *bool                                      `json:"free_openai_fast"`
@@ -720,6 +722,7 @@ func (h *GroupHandler) Create(c *gin.Context) {
 		SupportedModelScopes:            req.SupportedModelScopes,
 		AllowMessagesDispatch:           req.AllowMessagesDispatch,
 		AllowLive:                       req.AllowLive,
+		AccountIntelligenceEnabled:      req.AccountIntelligenceEnabled,
 		ForceOpenAIFast:                 req.ForceOpenAIFast,
 		ForceOpenAIUltrafast:            req.ForceOpenAIUltrafast,
 		FreeOpenAIFast:                  req.FreeOpenAIFast,
@@ -869,6 +872,7 @@ func (h *GroupHandler) Update(c *gin.Context) {
 		SupportedModelScopes:            req.SupportedModelScopes,
 		AllowMessagesDispatch:           req.AllowMessagesDispatch,
 		AllowLive:                       req.AllowLive,
+		AccountIntelligenceEnabled:      req.AccountIntelligenceEnabled,
 		ForceOpenAIFast:                 req.ForceOpenAIFast,
 		ForceOpenAIUltrafast:            req.ForceOpenAIUltrafast,
 		FreeOpenAIFast:                  req.FreeOpenAIFast,

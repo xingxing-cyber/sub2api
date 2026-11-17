@@ -4,6 +4,7 @@
  */
 
 import { apiClient } from '../client'
+import type { IntelligenceUptime } from '../channelMonitorV2'
 import type { OpenAIReferralRefreshResult, OpenAIReferralSendResult } from '@/types/openaiReferrals'
 import type {
   Account,
@@ -34,6 +35,36 @@ import type {
   OpenCodeGoUsageSettings,
   OpenCodeGoUsageState
 } from '@/types'
+
+export interface AccountIntelligenceView {
+  account_id: number
+  model: string
+  uptime: IntelligenceUptime
+}
+
+export async function getIntelligenceHistory(accountIDs: number[]): Promise<AccountIntelligenceView[]> {
+  const { data } = await apiClient.post<AccountIntelligenceView[]>('/admin/accounts/intelligence/history', { account_ids: accountIDs })
+  return data
+}
+
+export interface AccountLiveMetrics {
+  account_id: number
+  requests_10m: number
+  prompt_tokens_10m: number
+  cache_read_10m: number
+  cache_hit_pct: number
+  ttft_p50_ms: number
+  ttft_samples: number
+  requests_1h: number
+  error_requests_1h: number
+  error_rate_pct: number
+  computed_at: string
+}
+
+export async function getLiveMetrics(accountIDs: number[]): Promise<AccountLiveMetrics[]> {
+  const { data } = await apiClient.post<AccountLiveMetrics[]>('/admin/accounts/live-metrics', { account_ids: accountIDs })
+  return data
+}
 
 /**
  * List all accounts with pagination
@@ -1135,6 +1166,8 @@ export async function refreshOpenCodeGoUsage(id: number): Promise<OpenCodeGoUsag
 }
 
 export const accountsAPI = {
+  getIntelligenceHistory,
+  getLiveMetrics,
   list,
   listWithEtag,
   getUpstreamBillingRatesWithEtag,

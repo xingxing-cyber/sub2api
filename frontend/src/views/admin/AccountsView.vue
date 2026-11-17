@@ -306,6 +306,18 @@
           <template #cell-groups="{ row }">
             <AccountGroupsCell :groups="accountGroupsForRow(row)" :max-display="4" />
           </template>
+          <template #cell-intelligence="{ row }">
+            <div v-if="intelligenceByAccount[row.id]?.length" class="flex flex-col gap-2">
+              <div v-for="view in intelligenceByAccount[row.id]" :key="view.model">
+                <div class="mb-1 max-w-[200px] truncate text-[10px] text-gray-500" :title="view.model">{{ view.model }}</div>
+                <IntelligenceUptime :uptime="view.uptime" compact />
+              </div>
+            </div>
+            <span v-else class="text-gray-400">-</span>
+          </template>
+          <template #cell-live_metrics="{ row }">
+            <AccountLiveMetricsCell :metrics="liveMetricsByAccount[row.id]" :loading="liveMetricsLoading" />
+          </template>
           <template #header-usage="{ column }">
             <div class="flex items-center">
               <span>{{ column.label }}</span>
@@ -524,6 +536,8 @@ import AccountUsageCell from '@/components/account/AccountUsageCell.vue'
 import AccountTodayStatsCell from '@/components/account/AccountTodayStatsCell.vue'
 import AccountGroupsCell from '@/components/account/AccountGroupsCell.vue'
 import AccountCapacityCell from '@/components/account/AccountCapacityCell.vue'
+import AccountLiveMetricsCell from '@/components/account/AccountLiveMetricsCell.vue'
+import IntelligenceUptime from '@/components/user/monitor/IntelligenceUptime.vue'
 import UpstreamBillingRateCell from '@/components/account/UpstreamBillingRateCell.vue'
 import AccountPriorityCell from '@/components/account/AccountPriorityCell.vue'
 import PlatformTypeBadge from '@/components/common/PlatformTypeBadge.vue'
@@ -539,6 +553,7 @@ import { sanitizeUrl } from '@/utils/url'
 import { getFloatingPanelPosition } from '@/utils/floatingPanel'
 import { formatMultiplier } from '@/utils/formatters'
 import type { Account, AccountListItem, AccountPlatform, AccountSchedulerGroupScore, AccountType, AccountUsageInfo, Proxy as AccountProxy, AdminGroup, WindowStats, ClaudeModel, UpstreamBillingProbeSnapshot } from '@/types'
+import type { AccountIntelligenceView, AccountLiveMetrics } from '@/api/admin/accounts'
 
 const { t } = useI18n()
 const appStore = useAppStore()
@@ -546,6 +561,54 @@ const authStore = useAuthStore()
 
 const proxies = ref<AccountProxy[]>([])
 const groups = ref<AdminGroup[]>([])
+const intelligenceByAccount = ref<Record<number, AccountIntelligenceView[]>>({})
+const liveMetricsByAccount = ref<Record<number, AccountLiveMetrics>>({})
+const liveMetricsLoading = ref(false)
+let intelligenceRequestSequence = 0
+let liveMetricsRequestSequence = 0
+const refreshAccountIntelligence = async () => {
+  const sequence = ++intelligenceRequestSequence
+  const ids = accounts.value.filter(row => row.platform === 'openai').map(row => row.id)
+  if (!ids.length) { intelligenceByAccount.value = {}; return }
+  try {
+    const views: AccountIntelligenceView[] = []
+    for (let offset = 0; offset < ids.length; offset += 200) {
+      views.push(...await adminAPI.accounts.getIntelligenceHistory(ids.slice(offset, offset + 200)))
+    }
+    if (sequence !== intelligenceRequestSequence) return
+    const grouped: Record<number, AccountIntelligenceView[]> = {}
+    for (const view of views) (grouped[view.account_id] ??= []).push(view)
+    intelligenceByAccount.value = grouped
+  } catch (error) {
+    if (sequence === intelligenceRequestSequence) intelligenceByAccount.value = {}
+    console.error('Failed to read account intelligence history:', error)
+  }
+}
+const refreshAccountLiveMetrics = async () => {
+  if (!isColumnVisible('live_metrics')) return
+  const sequence = ++liveMetricsRequestSequence
+  const ids = accounts.value.map(row => row.id)
+  if (!ids.length) { liveMetricsByAccount.value = {}; return }
+  liveMetricsLoading.value = true
+  try {
+    const metrics: AccountLiveMetrics[] = []
+    for (let offset = 0; offset < ids.length; offset += 200) {
+      metrics.push(...await adminAPI.accounts.getLiveMetrics(ids.slice(offset, offset + 200)))
+    }
+    if (sequence !== liveMetricsRequestSequence) return
+    liveMetricsByAccount.value = Object.fromEntries(metrics.map(item => [item.account_id, item]))
+  } catch (error) {
+    if (sequence === liveMetricsRequestSequence) liveMetricsByAccount.value = {}
+    console.error('Failed to read account live metrics:', error)
+  } finally {
+    if (sequence === liveMetricsRequestSequence) liveMetricsLoading.value = false
+  }
+}
+const refreshAccountMonitorDetails = () => {
+  void refreshAccountIntelligence()
+  void refreshAccountLiveMetrics()
+}
+useIntervalFn(() => { if (!document.hidden) refreshAccountMonitorDetails() }, 60_000)
 const groupsByID = computed(() => new Map(groups.value.map(group => [group.id, group])))
 const accountGroupsForRow = (account: Pick<AccountListItem, 'group_ids'>): AdminGroup[] => {
   const groupIDs = account.group_ids ?? []
@@ -1381,6 +1444,7 @@ watch(loading, (isLoading, wasLoading) => {
 })
 
 watch(accounts, (rows) => {
+  refreshAccountMonitorDetails()
   const visibleIDs = new Set(rows.map((row) => String(row.id)))
   usageBatchByAccountId.value = Object.fromEntries(
     Object.entries(usageBatchByAccountId.value).filter(([key]) => visibleIDs.has(key))
@@ -1835,6 +1899,10 @@ const allColumns = computed(() => {
   if (!authStore.isSimpleMode) {
     c.push({ key: 'groups', label: t('admin.accounts.columns.groups'), sortable: false })
   }
+  if (accounts.value.some(row => row.platform === 'openai')) {
+    c.push({ key: 'intelligence', label: t('channelMonitorV3.intelligence.title'), sortable: false })
+  }
+  c.push({ key: 'live_metrics', label: t('admin.accounts.columns.liveMetrics'), sortable: false })
   c.push({ key: 'usage', label: t('admin.accounts.columns.usageWindows'), sortable: false })
   c.push(
     { key: 'proxy', label: t('admin.accounts.columns.proxy'), sortable: false },

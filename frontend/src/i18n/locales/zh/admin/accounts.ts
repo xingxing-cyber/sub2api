@@ -118,6 +118,8 @@ export default {
         schedulable: '调度',
         todayStats: '今日统计',
         groups: '分组',
+        intelligence: '智能可用率',
+        liveMetrics: '实时指标',
         usageWindows: '用量窗口',
         proxy: '代理',
         lastUsed: '最近使用',
@@ -125,6 +127,7 @@ export default {
         expiresAt: '过期时间',
         actions: '操作'
       },
+      liveMetrics: { cache: '缓存', ttft: '首字', errors: '报错', idle: '未使用' },
       schedulerScore: {
         baseShort: '普通',
         stickyShort: '粘性',
@@ -460,6 +463,8 @@ export default {
       },
       tempUnschedulable: {
         title: '临时不可调度',
+        neverTitle: '永不临时不可调度',
+        neverHint: '开启后该账号不会因传输错误、重试耗尽、调度阈值、自定义规则或健康熔断被自动摘号；请求失败仍会照常切换到其他账号。',
         statusTitle: '临时不可调度状态',
         hint: '当错误码与关键词同时匹配时，按规则的作用范围在指定时间内暂停整个账号，或只冷却对应模型。',
         notice: '规则按顺序匹配，需同时满足错误码与关键词。',

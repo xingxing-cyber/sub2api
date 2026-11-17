@@ -272,6 +272,8 @@ export default {
         schedulable: 'Schedulable',
         todayStats: 'Today Stats',
         groups: 'Groups',
+        intelligence: 'Intelligence uptime',
+        liveMetrics: 'Live metrics',
         usageWindows: 'Usage Windows',
         proxy: 'Proxy',
         lastUsed: 'Last Used',
@@ -279,6 +281,7 @@ export default {
         expiresAt: 'Expires At',
         actions: 'Actions'
       },
+      liveMetrics: { cache: 'Cache', ttft: 'TTFT', errors: 'Errors', idle: 'Idle' },
       schedulerScore: {
         baseShort: 'Base',
         stickyShort: 'Sticky',
@@ -412,6 +415,8 @@ export default {
       },
       tempUnschedulable: {
         title: 'Temp Unschedulable',
+        neverTitle: 'Never Temp Unschedulable',
+        neverHint: 'When enabled, this account is never auto-parked by transport errors, retry exhaustion, scheduling thresholds, custom rules, or the health breaker. Failed requests still fail over to other accounts.',
         statusTitle: 'Temp Unschedulable Status',
         hint: 'When error code and keyword both match, pause the whole account or cool down only the model for the configured duration, per the rule scope.',
         notice: 'Rules are evaluated in order and require both error code and keyword match.',

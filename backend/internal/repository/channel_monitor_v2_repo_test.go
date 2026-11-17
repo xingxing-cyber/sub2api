@@ -86,6 +86,17 @@ func TestChannelMonitorV2MetricIncludesSuccessRate(t *testing.T) {
 	require.NotNil(t, adminMetric.UpstreamAffectedRequests)
 }
 
+func TestChannelMonitorV2WarmCacheRateExcludesColdRequests(t *testing.T) {
+	acc := newMetricAccumulator()
+	acc.addFact(channelMonitorV2Fact{Success: 1, Input: 9000})
+	acc.addFact(channelMonitorV2Fact{Success: 1, Input: 200, CacheRead: 800, CacheSampleRead: 800, CacheSamplePrompt: 1000})
+	metric := acc.metric(1, false)
+	require.InDelta(t, 0.08, metric.CacheRate, 0.0001)
+	require.InDelta(t, 0.8, metric.CacheRateWarm, 0.0001)
+	// Empty warm samples keep the original display fallback available.
+	require.Zero(t, newMetricAccumulator().metric(1, false).CacheRateWarm)
+}
+
 func TestChannelMonitorV2WhereUsesConfiguredScopeAndEmptyFilterMeansAllConfigured(t *testing.T) {
 	filter := service.ChannelMonitorV2Filter{Start: time.Unix(1, 0), End: time.Unix(2, 0)}
 	cfg := service.ChannelMonitorV2Config{
@@ -286,9 +297,16 @@ func TestChannelMonitorV2ErrorAggregationCountsFinalUserErrorsOnly(t *testing.T)
 	require.Contains(t, query, "where bucket_start >= $1 and bucket_start < $2")
 	require.Contains(t, query, "upstream_affected_requests")
 	require.Contains(t, query, "jsonb_array_length(current_error.upstream_errors) > 0")
+	require.Contains(t, query, "current_error.stream is true")
+	require.Contains(t, query, "current_error.inbound_endpoint, current_error.request_path")
 	// request_id dedup must be time-bounded (no full-history scan).
 	require.Contains(t, query, "interval '90 minutes'")
-	require.Contains(t, query, "current_error.created_at >= $1 - interval '90 minutes'")
+	require.Contains(t, query, "e.created_at >= $1 - interval '90 minutes'")
+	// The candidate request IDs must be joined, not checked with an IN subquery
+	// for every error row; the latter caused bootstrap timeouts on large logs.
+	require.Contains(t, query, "inner join candidate_ids c on c.request_id = e.request_id")
+	require.Contains(t, query, "union all")
+	require.NotContains(t, query, "request_id in (select request_id from candidate_ids)")
 }
 
 func TestChannelMonitorV2ErrorAggregationResolvesCompositePlatform(t *testing.T) {
