@@ -1,6 +1,6 @@
 # 服务器功能迁移记录
 
-本地目录：`D:\sub2api-new\xingxing-sub2api`；分支：`port-server-features`。
+本地目录：`D:\sub2api-new\xingxing-sub2api`；日常维护分支：`main`。初始迁移保留在 `port-server-features` 分支。后续官方 v0.2.23 同步见 [同步记录](upstream-sync-v0.2.23.md)。
 
 自己的仓库为 https://github.com/xingxing-cyber/sub2api ，保留官方仓库 https://github.com/Wei-Shaw/sub2api 的历史与 upstream remote。本次在官方 v0.2.22（`15871f9`）上迁移服务器定制功能，没有把旧 fork 整体覆盖到新仓库。
 
